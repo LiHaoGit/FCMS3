@@ -72,7 +72,7 @@ exports.refresh = function () {
         let url = route.url
         let method = route.method
 
-        // Log.debug("route #{method} #{url}")
+        Log.debug(`route ${method} ${url}`)
         route.indexToVariable = {}
 
         if (url === '' || url === '/')

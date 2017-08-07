@@ -69,7 +69,7 @@ async function aStart(appConfig, addRouteRules, extraEntities) {
     Log.system.info('Starting the web server...')
     await WebServer.aStart()
     webStarted = true
-    Log.system.info('Web server started!')
+    Log.system.info(`Web server started on port(s): ${Config.serverPort} (http)`)
 }
 
 async function aStop() {
