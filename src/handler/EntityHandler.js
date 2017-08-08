@@ -21,6 +21,29 @@ exports.aCreateEntity = async function (ctx) {
     ctx.body = { id: r._id }
 }
 
+exports.aCreateEntitiesInBatch = async function (ctx) {
+    let entityName = ctx.params.entityName
+    let ignoreError = Util.stringToBoolean(ctx.query.ignore)
+
+    let instances = ctx.request.body
+    if (!(instances && _.isArray(instances) && instances.length))
+        throw new Errors.UserError("EmptyOperation")
+
+    let promises = _.map(instances, async (i) => {
+        try {
+            let r = await exports._aCreateEntity(ctx, entityName, i)
+            return r._id
+        } catch (e) {
+            if (ignoreError)
+                return null
+            else
+                throw e
+        }
+    })
+
+    ctx.body = await Promise.all(promises)
+}
+
 exports._aCreateEntity = async function (ctx, entityName, instance) {
     let entityMeta = Meta.getEntityMeta(entityName)
 

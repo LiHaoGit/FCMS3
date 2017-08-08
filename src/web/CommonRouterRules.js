@@ -91,6 +91,8 @@ exports.addCommonRouteRules = function (RouteRuleRegisters) {
         EntityHandler.aFindOneById)
     rrr.post('/entity/:entityName', { auth: 'createEntity' },
         EntityHandler.aCreateEntity)
+    rrr.post('/entity/:entityName/batch', { auth: 'createEntity' },
+        EntityHandler.aCreateEntitiesInBatch)
     rrr.put('/entity/:entityName/:id', { auth: 'updateOneEntity' },
         EntityHandler.aUpdateEntityById)
     rrr.put('/entity/:entityName', { auth: 'updateManyEntity' },
