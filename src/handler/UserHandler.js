@@ -1,8 +1,9 @@
-const _ = require('lodash')
-const Errors = require('../Errors')
-const Config = require('../Config')
+const _ = require("lodash")
+const Errors = require("../Errors")
+const Config = require("../Config")
+const Util = require("../Util")
 
-const UserService = require('../security/UserService')
+const UserService = require("../security/UserService")
 // const SecurityCodeService = require('../security/SecurityCodeService')
 
 function checkPasswordFormat(password, format) {
@@ -11,12 +12,11 @@ function checkPasswordFormat(password, format) {
 
 exports.checkPasswordFormat = checkPasswordFormat
 
-exports.clearUserSessionCookies = function (ctx) {
-    ctx.cookies.set('UserId', null, { signed: true, httpOnly: true })
-    ctx.cookies.set('UserToken', null, { signed: true, httpOnly: true })
+exports.clearUserSessionCookies = function(ctx) {
+    Util.setSingedPortedCookies(ctx, {UserId: null, UserToken: null})
 }
 
-exports.aPing = async function (ctx) {
+exports.aPing = async function(ctx) {
     let user = ctx.state.user
 
     if (user) {
@@ -38,22 +38,20 @@ exports.aPing = async function (ctx) {
 }
 
 // 用户登录接口
-exports.aSignIn = async function (ctx) {
+exports.aSignIn = async function(ctx) {
     let req = ctx.request.body
     if (!(req.username && req.password)) return ctx.status = 400
 
     let origin = ctx.request.origin
     let session = await UserService.aSignIn(origin, req.username, req.password)
-    ctx.body = { userId: session.userId }
+    ctx.body = {userId: session.userId}
 
-    ctx.cookies.set('UserId', session.userId,
-        { signed: true, httpOnly: true })
-    ctx.cookies.set('UserToken', session.userToken,
-        { signed: true, httpOnly: true })
+    Util.setSingedPortedCookies(ctx,
+        {UserId: session.userId, UserToken: session.userToken})
 }
 
 // 登出接口
-exports.aSignOut = async function (ctx) {
+exports.aSignOut = async function(ctx) {
     await UserService.aSignOut(ctx.request.origin, ctx.state.userId)
 
     // 清cookies
@@ -63,11 +61,11 @@ exports.aSignOut = async function (ctx) {
 }
 
 // 用户修改密码接口
-exports.aChangePassword = async function (ctx) {
+exports.aChangePassword = async function(ctx) {
     let req = ctx.request.body
 
     if (!checkPasswordFormat(req.newPassword, Config.passwordFormat))
-        throw new Errors.UserError('BadPasswordFormat')
+        throw new Errors.UserError("BadPasswordFormat")
 
     await UserService.aChangePassword(ctx.state.user._id,
         req.oldPassword, req.newPassword)

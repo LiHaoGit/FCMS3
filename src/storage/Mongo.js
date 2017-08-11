@@ -1,9 +1,9 @@
-const mongodb = require('mongodb')
+const mongodb = require("mongodb")
 const ObjectId = mongodb.ObjectId
 const MongoClient = mongodb.MongoClient
 
-const Log = require('../Log')
-const Config = require('../Config')
+const Log = require("../Log")
+const Config = require("../Config")
 
 class MongoStore {
     constructor(name, url) {
@@ -16,17 +16,17 @@ class MongoStore {
 
         this.db = await MongoClient.connect(this.url)
 
-        this.db.on('close', () => {
+        this.db.on("close", () => {
             this.db = null
             Log.system.info(`MongoDB [${this.name}] closed`)
         })
 
-        this.db.on('error', (e) => {
+        this.db.on("error", e => {
             this.db = null
             Log.system.error(e, `MongoDB [${this.name}] error`)
         })
 
-        this.db.on('reconnect', () => {
+        this.db.on("reconnect", () => {
             Log.system.info(`Mongo DB [${this.name}] reconnect`)
         })
 
@@ -43,12 +43,11 @@ class MongoStore {
             Log.system.error(e, `Error on disposing mongodb [${this.name}]`)
         }
     }
-
 }
 
 exports.stores = {}
 
-exports.init = function () {
+exports.init = function() {
     "use strict"
     if (!Config.mongoDatabases) {
         Log.system.warn("No mongo!")
@@ -59,7 +58,7 @@ exports.init = function () {
     }
 }
 
-exports.aDispose = async function () {
+exports.aDispose = async function() {
     "use strict"
     for (let db in exports.stores) {
         if (!exports.stores.hasOwnProperty(db)) continue
@@ -68,19 +67,19 @@ exports.aDispose = async function () {
 }
 
 // 返回值是ObjectId
-exports.getInsertedIdObject = function (r) {
+exports.getInsertedIdObject = function(r) {
     return r && r.insertedId || null
 }
 
-exports.getUpdateResult = function (r) {
-    return r && { matchedCount: r.matchedCount, modifiedCount: r.modifiedCount }
+exports.getUpdateResult = function(r) {
+    return r && {matchedCount: r.matchedCount, modifiedCount: r.modifiedCount}
 }
 
-exports.isIndexConflictError = function (e) {
+exports.isIndexConflictError = function(e) {
     return e.code === 11000
 }
 
-exports.stringToObjectId = function (string) {
+exports.stringToObjectId = function(string) {
     if (!string) return string
 
     if (string instanceof ObjectId)
@@ -90,7 +89,7 @@ exports.stringToObjectId = function (string) {
 }
 
 // 如果无法解析 ObjectID 返回 undefined；如果本身是 null/undefined 原样返回
-exports.stringToObjectIdSilently = function (string) {
+exports.stringToObjectIdSilently = function(string) {
     try {
         return exports.stringToObjectId(string)
     } catch (e) {
@@ -99,7 +98,7 @@ exports.stringToObjectIdSilently = function (string) {
 }
 
 // 忽略无法解析的
-exports.stringArrayToObjectIdArraySilently = function (stringArray) {
+exports.stringArrayToObjectIdArraySilently = function(stringArray) {
     if (!stringArray) return []
 
     let ids = []
@@ -111,7 +110,7 @@ exports.stringArrayToObjectIdArraySilently = function (stringArray) {
 }
 
 // 将通用查询转转换为 mongo 的查询对象
-exports.toMongoCriteria = function (criteria) {
+exports.toMongoCriteria = function(criteria) {
     if (!criteria) return {}
 
     let __type = criteria.__type
@@ -120,28 +119,28 @@ exports.toMongoCriteria = function (criteria) {
     let mongoCriteria = {}
 
     switch (__type) {
-        case 'mongo':
-            return criteria
-        case 'relation':
-            toMongoCriteria(criteria, mongoCriteria)
-            return mongoCriteria
-        default:
-            return criteria
+    case "mongo":
+        return criteria
+    case "relation":
+        toMongoCriteria(criteria, mongoCriteria)
+        return mongoCriteria
+    default:
+        return criteria
     }
 }
 
 function toMongoCriteria(criteria, mongoCriteria) {
     if (!criteria) return
 
-    if (criteria.relation === 'or') {
+    if (criteria.relation === "or") {
         let items = []
         for (let item of criteria.items) {
             let mc = {}
             toMongoCriteria(item, mc)
             if (mc) items.push(mc)
         }
-        mongoCriteria['$or'] = items
-    } else if (criteria.relation === 'and') {
+        mongoCriteria.$or = items
+    } else if (criteria.relation === "and") {
         for (let item of criteria.items)
             toMongoCriteria(item, mongoCriteria)
     } else if (criteria.field) {
@@ -150,39 +149,39 @@ function toMongoCriteria(criteria, mongoCriteria) {
         let field = criteria.field
         let fc = mongoCriteria[field] = mongoCriteria[field] || {}
         switch (operator) {
-            case '==':
-                mongoCriteria[field] = value
-                break
-            case '!=':
-                // TODO 对于部分运算符要检查 comparedValue 不为 null/undefined/NaN
-                fc.$ne = value
-                break
-            case '>':
-                fc.$gt = value
-                break
-            case '>=':
-                fc.$gte = value
-                break
-            case '<':
-                fc.$lt = value
-                break
-            case '<=':
-                fc.$lte = value
-                break
-            case 'in':
-                fc.$in = value
-                break
-            case 'nin':
-                fc.$nin = value
-                break
-            case 'start':
-                fc.$regex = "^" + value
-                break
-            case 'end':
-                fc.$regex = value + "$"
-                break
-            case 'contain':
-                fc.$regex = value
+        case "==":
+            mongoCriteria[field] = value
+            break
+        case "!=":
+            // TODO 对于部分运算符要检查 comparedValue 不为 null/undefined/NaN
+            fc.$ne = value
+            break
+        case ">":
+            fc.$gt = value
+            break
+        case ">=":
+            fc.$gte = value
+            break
+        case "<":
+            fc.$lt = value
+            break
+        case "<=":
+            fc.$lte = value
+            break
+        case "in":
+            fc.$in = value
+            break
+        case "nin":
+            fc.$nin = value
+            break
+        case "start":
+            fc.$regex = "^" + value
+            break
+        case "end":
+            fc.$regex = value + "$"
+            break
+        case "contain":
+            fc.$regex = value
         }
     }
 }

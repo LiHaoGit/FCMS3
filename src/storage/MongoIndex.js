@@ -1,9 +1,9 @@
-const Meta = require('../Meta')
-const Log = require('../Log')
-const Mongo = require('./Mongo')
+const Meta = require("../Meta")
+const Log = require("../Log")
+const Mongo = require("./Mongo")
 
 // 在执行数据库创建指定实体的元数据
-exports.aSyncWithMeta = async function () {
+exports.aSyncWithMeta = async function() {
     "use strict"
     let entities = Meta.getEntities()
     for (let entityName in entities) {
@@ -24,7 +24,7 @@ exports.aSyncWithMeta = async function () {
                     let fc = f.split(":")
                     fields[fc[0]] = parseInt(fc[1], 10)
                 }
-                let options = { name: tableName + "_" + i.name }
+                let options = {name: tableName + "_" + i.name}
                 if (i.unique) options.unique = true
                 if (i.sparse) options.sparse = true
 
@@ -34,7 +34,7 @@ exports.aSyncWithMeta = async function () {
             // 小心不要删除主键！！
             // existedIndexes = await c.listIndexes().toArray()
         } catch (e) {
-            Log.system.error(e, 'create mongo index', entityName)
+            Log.system.error(e, "create mongo index", entityName)
         }
     }
 }

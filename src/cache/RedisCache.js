@@ -1,8 +1,8 @@
-const Redis = require('../storage/Redis')
-const _ = require('lodash')
+const Redis = require("../storage/Redis")
+const _ = require("lodash")
 
-const Log = require('../Log')
-const Util = require('../Util')
+const Log = require("../Log")
+const Util = require("../Util")
 
 const keySeparator = ":"
 
@@ -25,13 +25,13 @@ exports.aSetString = aSet
 exports.aGetCachedString = aGet
 exports.aSetCachedString = aSet
 
-exports.aGetObject = async function (keysArray, alternative) {
+exports.aGetObject = async function(keysArray, alternative) {
     let str = await aGet(keysArray, alternative)
     let json = str && JSON.parse(str)
     return Util.typedJSONToJsObject(json)
 }
 
-exports.aSetObject = async function (keysArray, value) {
+exports.aSetObject = async function(keysArray, value) {
     value = Util.jsObjectToTypedJSON(value)
     let str = value && JSON.stringify(value)
     await aSet(keysArray, str)
@@ -39,7 +39,7 @@ exports.aSetObject = async function (keysArray, value) {
 
 // keysArray, lastKeys 都是数组
 // 例如 aUnset(["a","b"],["1","2"] 可以删除键 "a.b.1" 和 "a.b.2"
-exports.aUnset = async function (keysArray, lastKeys) {
+exports.aUnset = async function(keysArray, lastKeys) {
     if (lastKeys && lastKeys.length) {
         keysArray = _.clone(keysArray)
         let keysLength = keysArray.length
@@ -54,12 +54,12 @@ exports.aUnset = async function (keysArray, lastKeys) {
         keysArray = await Redis.client.keysAsync(key)
     }
 
-    Log.debug('unset redis keys', keysArray)
+    Log.debug("unset redis keys", keysArray)
 
     if (keysArray.length) await Redis.client.delAsync(keysArray)
 }
 
-exports.aClearAllCache = async function () {
+exports.aClearAllCache = async function() {
     const keys = await Redis.client.keysAsync("*")
     if (keys.length) await Redis.client.delAsync(keys)
 }

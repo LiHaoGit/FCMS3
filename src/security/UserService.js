@@ -1,70 +1,70 @@
-const chance = new require('chance')()
-const _ = require('lodash')
+const chance = new require("chance")()
+const _ = require("lodash")
 
-const Errors = require('../Errors')
-const Log = require('../Log')
-const Meta = require('../Meta')
-const Config = require('../Config')
-const Util = require('../Util')
-const Cache = require('../cache/Cache')
+const Errors = require("../Errors")
+const Log = require("../Log")
+const Meta = require("../Meta")
+const Config = require("../Config")
+const Util = require("../Util")
+const Cache = require("../cache/Cache")
 
-const EntityService = require('../service/EntityService')
+const EntityService = require("../service/EntityService")
 
-const PermissionService = require('./PermissionService')
+const PermissionService = require("./PermissionService")
 
 const cacheKeyRoot = "user"
 
-exports.init = function () {
-    let EntityServiceCache = require('../service/EntityServiceCache')
-    EntityServiceCache.onUpdatedOrRemoved(async (ctx, entityMeta, ids) => {
-        if (entityMeta.name === 'F_User') {
+exports.init = function() {
+    let EntityServiceCache = require("../service/EntityServiceCache")
+    EntityServiceCache.onUpdatedOrRemoved(async(ctx, entityMeta, ids) => {
+        if (entityMeta.name === "F_User") {
             if (ids)
-                await Cache.aUnset([cacheKeyRoot, 'user'], ids)
+                await Cache.aUnset([cacheKeyRoot, "user"], ids)
             else
-                await Cache.aUnset([cacheKeyRoot, 'user'])
-        } else if (entityMeta.name === 'F_UserRole') {
-            await Cache.aUnset([cacheKeyRoot], ['anonymousRole'])
+                await Cache.aUnset([cacheKeyRoot, "user"])
+        } else if (entityMeta.name === "F_UserRole") {
+            await Cache.aUnset([cacheKeyRoot], ["anonymousRole"])
 
             if (ids)
-                await Cache.aUnset([cacheKeyRoot, 'role'], ids)
+                await Cache.aUnset([cacheKeyRoot, "role"], ids)
             else
-                await Cache.aUnset([cacheKeyRoot, 'role'])
+                await Cache.aUnset([cacheKeyRoot, "role"])
         }
     })
 }
 
-exports.aUserById = async function (id) {
-    let user = await Cache.aGetObject([cacheKeyRoot, 'user', id])
+exports.aUserById = async function(id) {
+    let user = await Cache.aGetObject([cacheKeyRoot, "user", id])
     if (user) return user
 
-    user = await EntityService.aFindOneByCriteria({}, 'F_User', { _id: id })
+    user = await EntityService.aFindOneByCriteria({}, "F_User", {_id: id})
     if (user) {
         PermissionService.permissionArrayToMap(user.acl)
-        await Cache.aSetObject([cacheKeyRoot, 'user', id], user)
+        await Cache.aSetObject([cacheKeyRoot, "user", id], user)
     }
 
     return user
 }
 
-exports.aRoleById = async function (id) {
-    let role = await Cache.aGetObject([cacheKeyRoot, 'role', id])
+exports.aRoleById = async function(id) {
+    let role = await Cache.aGetObject([cacheKeyRoot, "role", id])
     if (role) return role
 
-    role = await EntityService.aFindOneByCriteria({}, 'F_UserRole', { _id: id })
+    role = await EntityService.aFindOneByCriteria({}, "F_UserRole", {_id: id})
     if (role) {
         PermissionService.permissionArrayToMap(role.acl)
-        await Cache.aSetObject([cacheKeyRoot, 'role', id], role)
+        await Cache.aSetObject([cacheKeyRoot, "role", id], role)
     }
     return role
 }
 
-exports.aRoleIdByName = async function (name) {
+exports.aRoleIdByName = async function(name) {
     let role = await EntityService.aFindOneByCriteria({},
-        'F_UserRole', { name }, { includeFields: ['_id'] })
+        "F_UserRole", {name}, {includeFields: ["_id"]})
     return role && role._id
 }
 
-exports.aAddRemoveRoleNameToUser = async function (userId, addRoles,
+exports.aAddRemoveRoleNameToUser = async function(userId, addRoles,
     removeRoles) {
     if (!(addRoles || removeRoles)) return
 
@@ -73,14 +73,14 @@ exports.aAddRemoveRoleNameToUser = async function (userId, addRoles,
 
     if (addRoles) {
         let addRoleIds = await Promise.all(_.map(addRoles,
-            (name) => exports.aRoleIdByName(name)))
+            name => exports.aRoleIdByName(name)))
 
         for (let id of addRoleIds)
             if (!Util.inObjectIds(id, roles)) roles.push(id)
     }
     if (removeRoles) {
         let removeRoleIds = await Promise.all(_.map(removeRoles,
-            (name) => exports.aRoleIdByName(name)))
+            name => exports.aRoleIdByName(name)))
         let roles2 = []
         for (let id of roles)
             if (!Util.inObjectIds(id, removeRoleIds)) roles2.push(id)
@@ -88,46 +88,48 @@ exports.aAddRemoveRoleNameToUser = async function (userId, addRoles,
     }
 
     await EntityService.aUpdateOneByCriteria({},
-        'F_User', { _id: userId }, { roles })
-    await Cache.aUnset([cacheKeyRoot, 'user'], [userId])
+        "F_User", {_id: userId}, {roles})
+    await Cache.aUnset([cacheKeyRoot, "user"], [userId])
 }
 
-exports.aGetAnonymousRole = async function () {
-    let anonymousRole = await Cache.aGetObject([cacheKeyRoot, 'anonymousRole'])
+exports.aGetAnonymousRole = async function() {
+    let anonymousRole = await Cache.aGetObject([cacheKeyRoot, "anonymousRole"])
     if (anonymousRole) return anonymousRole
 
     let role = await EntityService.aFindOneByCriteria({},
-        'F_UserRole', { name: 'anonymous' })
+        "F_UserRole", {name: "anonymous"})
     if (role) {
         PermissionService.permissionArrayToMap(role.acl)
-        await Cache.aSetObject([cacheKeyRoot, 'anonymousRole'], role)
+        await Cache.aSetObject([cacheKeyRoot, "anonymousRole"], role)
     }
     return role
 }
 
-exports.aAuthToken = async function (origin, userId, userToken) {
+exports.aAuthToken = async function(origin, userId, userToken) {
     let session = await EntityService.aFindOneByCriteria({},
-        'F_UserSession', { origin, userId })
+        "F_UserSession", {origin, userId})
     if (!session) return false
 
     if (session.userToken !== userToken) {
-        Log.debug('token not match', { userId,
+        Log.debug("token not match", {
+            userId,
             userToken,
-            sessionUserToken: session.userToken })
+            sessionUserToken: session.userToken
+        })
         return false
     }
 
     if (session.expireAt < Date.now()) {
-        Log.debug('token expired', { userId, expireAt: session.expireAt })
+        Log.debug("token expired", {userId, expireAt: session.expireAt})
         return false
     }
 
-    return await exports.aUserById(userId)
+    return exports.aUserById(userId)
 }
 
 // 登录
 // TODO 思考：如果用户之前登录此子应用的 session 未过期，是返回之前的 session 还是替换 session
-exports.aSignIn = async function (origin, username, password) {
+exports.aSignIn = async function(origin, username, password) {
     if (!password) throw new Errors.UserError("PasswordNotMatch")
 
     let usernameFields = Config.usernameFields
@@ -136,10 +138,10 @@ exports.aSignIn = async function (origin, username, password) {
 
     let matchFields = []
     for (let f of usernameFields)
-        matchFields.push({ field: f, operator: "==", value: username })
-    let criteria = { __type: 'relation', relation: 'or', items: matchFields }
+        matchFields.push({field: f, operator: "==", value: username})
+    let criteria = {__type: "relation", relation: "or", items: matchFields}
 
-    let user = await EntityService.aFindOneByCriteria({}, 'F_User', criteria)
+    let user = await EntityService.aFindOneByCriteria({}, "F_User", criteria)
 
     if (!user) throw new Errors.UserError("UserNotExisted")
     if (user.disabled) throw new Errors.UserError("UserDisabled")
@@ -151,27 +153,27 @@ exports.aSignIn = async function (origin, username, password) {
     return session
 }
 
-exports.aSignInSuccessfully = async function (origin, user) {
+exports.aSignInSuccessfully = async function(origin, user) {
     let session = {}
     session.origin = origin
     session.userId = user._id
-    session.userToken = chance.string({ length: 24 })
+    session.userToken = chance.string({length: 24})
     session.expireAt = Date.now() + Config.sessionExpireAtServer
 
     await exports.aSignOut(origin, user._id) // 先退出
-    await EntityService.aCreate({}, 'F_UserSession', session)
+    await EntityService.aCreate({}, "F_UserSession", session)
 
     return session
 }
 
 // 登出
-exports.aSignOut = async function (origin, userId) {
-    let criteria = { userId, origin }
-    await EntityService.aRemoveManyByCriteria({}, 'F_UserSession', criteria)
+exports.aSignOut = async function(origin, userId) {
+    let criteria = {userId, origin}
+    await EntityService.aRemoveManyByCriteria({}, "F_UserSession", criteria)
 }
 
 // 添加用户（核心信息）
-exports.aAddUser = async function (userInput) {
+exports.aAddUser = async function(userInput) {
     let user = {
         _id: Meta.newObjectId().toString(), // 用户 ID 同一直接用字符串
         password: Meta.hashPassword(userInput.password)
@@ -181,7 +183,7 @@ exports.aAddUser = async function (userInput) {
     if (userInput.phone) user.phone = userInput.phone
     if (userInput.email) user.email = userInput.email
 
-    await EntityService.aCreate({}, 'F_User', user)
+    await EntityService.aCreate({}, "F_User", user)
 }
 
 // 修改绑定的手机
@@ -205,17 +207,17 @@ exports.aAddUser = async function (userInput) {
 //     await Cache.gUnset [cacheKeyRoot, 'user'], [userId]
 //
 // 修改密码
-exports.aChangePassword = async function (userId, oldPassword, newPassword) {
+exports.aChangePassword = async function(userId, oldPassword, newPassword) {
     let user = await EntityService.aFindOneByCriteria({},
-        'F_User', { _id: userId })
+        "F_User", {_id: userId})
     if (!user) throw new Errors.UserError("UserNotExisted")
     if (user.disabled) throw new Errors.UserError("UserDisabled")
     if (Meta.hashPassword(oldPassword) !== user.password)
         throw new Errors.UserError("PasswordNotMatch")
 
-    let update = { password: Meta.hashPassword(newPassword) }
+    let update = {password: Meta.hashPassword(newPassword)}
     await EntityService.aUpdateOneByCriteria({},
-        'F_User', { _id: userId, _version: user._version }, update)
+        "F_User", {_id: userId, _version: user._version}, update)
 
     await aRemoveAllUserSessionOfUser(userId)
 }
@@ -243,7 +245,7 @@ exports.aChangePassword = async function (userId, oldPassword, newPassword) {
 //     await _gRemoveAllUserSessionOfUser user._id
 //
 
-exports.checkUserHasRoleId = function (user, roleId) {
+exports.checkUserHasRoleId = function(user, roleId) {
     roleId = roleId.toString()
     if (user.roles)
         for (let r of user.roles) if (r._id.toString() === roleId) return true
@@ -251,6 +253,6 @@ exports.checkUserHasRoleId = function (user, roleId) {
 }
 
 async function aRemoveAllUserSessionOfUser(userId) {
-    return await EntityService.aRemoveManyByCriteria({},
-        'F_UserSession', { useId: userId })
+    return EntityService.aRemoveManyByCriteria({},
+        "F_UserSession", {useId: userId})
 }

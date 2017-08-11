@@ -1,16 +1,16 @@
-const _ = require('lodash')
+const _ = require("lodash")
 
-const Errors = require('../Errors')
-const Meta = require('../Meta')
-const Log = require('../Log')
-const Util = require('../Util')
+const Errors = require("../Errors")
+const Meta = require("../Meta")
+const Log = require("../Log")
+const Util = require("../Util")
 
-const Mongo = require('../storage/Mongo')
+const Mongo = require("../storage/Mongo")
 
-exports.aCreate = async function (entityMeta, instance) {
+exports.aCreate = async function(entityMeta, instance) {
     "use strict"
     // ObjectId 或非 String 的 id 由调用者设置，这里自动设置 String 类型的 ID
-    if (entityMeta.fields._id.persistType === 'String' && _.isNil(instance._id))
+    if (entityMeta.fields._id.persistType === "String" && _.isNil(instance._id))
         instance._id = Meta.newObjectId().toString()
 
     let db = await Mongo.stores[entityMeta.dbName].aDatabase()
@@ -21,12 +21,12 @@ exports.aCreate = async function (entityMeta, instance) {
         return Mongo.getInsertedIdObject(res)
     } catch (e) {
         if (!Mongo.isIndexConflictError(e)) throw e
-        let { code, message } = errorToDupKeyError(e, entityMeta)
+        let {code, message} = errorToDupKeyError(e, entityMeta)
         throw new Errors.UniqueConflictError(code, message)
     }
 }
 
-exports.aUpdateManyByCriteria = async function (entityMeta, criteria,
+exports.aUpdateManyByCriteria = async function(entityMeta, criteria,
     instance) {
     let update = objectToMongoUpdate(instance)
     if (!update) return 0
@@ -42,12 +42,12 @@ exports.aUpdateManyByCriteria = async function (entityMeta, criteria,
         return r.modifiedCount
     } catch (e) {
         if (!Mongo.isIndexConflictError(e)) throw e
-        let { code, message } = errorToDupKeyError(e, entityMeta)
+        let {code, message} = errorToDupKeyError(e, entityMeta)
         throw new Errors.UniqueConflictError(code, message)
     }
 }
 
-exports.aUpdateOneByCriteria = async function (entityMeta, criteria, instance) {
+exports.aUpdateOneByCriteria = async function(entityMeta, criteria, instance) {
     let update = objectToMongoUpdate(instance)
     if (!update) return 0
 
@@ -62,20 +62,20 @@ exports.aUpdateOneByCriteria = async function (entityMeta, criteria, instance) {
         r = Mongo.getUpdateResult(res)
     } catch (e) {
         if (!Mongo.isIndexConflictError(e)) throw e
-        let { code, message } = errorToDupKeyError(e, entityMeta)
+        let {code, message} = errorToDupKeyError(e, entityMeta)
         throw new Errors.UniqueConflictError(code, message)
     }
 
-    if (r.modifiedCount !== 1) throw new Errors.UserError('ConcurrentUpdate')
+    if (r.modifiedCount !== 1) throw new Errors.UserError("ConcurrentUpdate")
 }
 
-exports.aRemoveManyByCriteria = async function (entityMeta, criteria) {
+exports.aRemoveManyByCriteria = async function(entityMeta, criteria) {
     let nativeCriteria = Mongo.toMongoCriteria(criteria)
 
-    if (entityMeta.removeMode === 'toTrash')
-        return await aRemoveManyToTrash(entityMeta, nativeCriteria)
+    if (entityMeta.removeMode === "toTrash")
+        return aRemoveManyToTrash(entityMeta, nativeCriteria)
     else
-        return await aRemoveManyCompletely(entityMeta, nativeCriteria)
+        return aRemoveManyCompletely(entityMeta, nativeCriteria)
 }
 
 // 软删除有几种方式：放在单独的表中，放在原来的表中+使用标记字段。
@@ -107,14 +107,14 @@ async function aRemoveManyCompletely(entityMeta, criteria) {
     await c.deleteMany(criteria)
 }
 
-exports.aRecoverMany = async function (entityMeta, ids) {
+exports.aRecoverMany = async function(entityMeta, ids) {
     let trashTable = Meta.getCollectionName(entityMeta, "trash")
 
     let db = await Mongo.stores[entityMeta.dbName].aDatabase()
     let formalCollection = db.collection(entityMeta.tableName)
     let trashCollection = db.collection(trashTable)
 
-    let list = await trashCollection.find({ _id: { $in: ids } }).toArray()
+    let list = await trashCollection.find({_id: {$in: ids}}).toArray()
 
     for (let entity of list) {
         entity._modifiedOn = new Date()
@@ -125,14 +125,14 @@ exports.aRecoverMany = async function (entityMeta, ids) {
         await formalCollection.insertMany(list)
     } catch (e) {
         if (!Mongo.isIndexConflictError(e)) throw e
-        let { code, message } = errorToDupKeyError(e, entityMeta)
+        let {code, message} = errorToDupKeyError(e, entityMeta)
         throw new Errors.UniqueConflictError(code, message)
     }
 
-    await trashCollection.deleteMany({ _id: { $in: ids } })
+    await trashCollection.deleteMany({_id: {$in: ids}})
 }
 
-exports.aFindOneByCriteria = async function (entityMeta, criteria, o) {
+exports.aFindOneByCriteria = async function(entityMeta, criteria, o) {
     let collectionName = Meta.getCollectionName(entityMeta, o && o.repo)
 
     let nativeCriteria = Mongo.toMongoCriteria(criteria)
@@ -140,13 +140,15 @@ exports.aFindOneByCriteria = async function (entityMeta, criteria, o) {
     let db = await Mongo.stores[entityMeta.dbName].aDatabase()
     let c = db.collection(collectionName)
     let projection = Util.arrayToTrueObject(o && o.includedFields) || {}
-    return await c.findOne(nativeCriteria, projection)
+    return c.findOne(nativeCriteria, projection)
 }
 
 // sort 为 mongo 原生格式
-exports.aList = async function (options) {
-    let { entityMeta, criteria, sort,
-        repo, includedFields, pageNo, pageSize, withoutTotal } = options
+exports.aList = async function(options) {
+    let {
+        entityMeta, criteria, sort,
+        repo, includedFields, pageNo, pageSize, withoutTotal
+    } = options
     let collectionName = Meta.getCollectionName(entityMeta, repo)
     let nativeCriteria = Mongo.toMongoCriteria(criteria)
     includedFields = Util.arrayToTrueObject(includedFields) || {}
@@ -164,7 +166,7 @@ exports.aList = async function (options) {
         return page
     } else {
         let total = await c.count(nativeCriteria)
-        return { total, page }
+        return {total, page}
     }
 }
 
@@ -175,16 +177,16 @@ function errorToDupKeyError(e, entityMeta) {
     if (matches) {
         let indexName = matches[2]
         // let value = matches[3]
-        Log.debug('toDupKeyError, indexName=' + indexName)
+        Log.debug("toDupKeyError, indexName=" + indexName)
 
-        let indexConfig = _.find(entityMeta.mongoIndexes, (i) =>
+        let indexConfig = _.find(entityMeta.mongoIndexes, i =>
             entityMeta.tableName + "_" + i.name === indexName)
-        if (!indexConfig) Log.system.warn('No index config for ' + indexName)
-        let message = indexConfig && indexConfig.errorMessage
-            || `值重复：${indexName}`
-        return { code: "DupKey", message, key: indexName }
+        if (!indexConfig) Log.system.warn("No index config for " + indexName)
+        let message = indexConfig && indexConfig.errorMessage ||
+            `值重复：${indexName}`
+        return {code: "DupKey", message, key: indexName}
     } else {
-        return { code: "DupKey", message: e.message, key: null }
+        return {code: "DupKey", message: e.message, key: null}
     }
 }
 
@@ -207,7 +209,7 @@ function objectToMongoUpdate(object) {
             unset[key] = ""
     }
 
-    let update = { $inc: { _version: 1 } }
+    let update = {$inc: {_version: 1}}
     if (_.size(set)) update.$set = set
     if (_.size(unset)) update.$unset = unset
 

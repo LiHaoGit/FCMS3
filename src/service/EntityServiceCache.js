@@ -1,8 +1,8 @@
-const _ = require('lodash')
+const _ = require("lodash")
 // const sizeof = require('object-sizeof')
 
-const Log = require('../Log')
-const Cache = require('../cache/Cache')
+const Log = require("../Log")
+const Cache = require("../cache/Cache")
 
 // 缓存分两类：1、byIdCache：根据 ID 查询单个实体。2、otherCache：其他，包括根据非 ID 查询单个实体。
 // 增删改三个操作。增不影响 byIdCache；删和改影响指定 ID 的 byIdCache；
@@ -13,46 +13,48 @@ const entityCreatedListeners = []
 const entityUpdatedListeners = []
 const entityRemovedListeners = []
 
-exports.aWithCache = async function (entityMeta, cacheId, aQuery) {
+exports.aWithCache = async function(entityMeta, cacheId, aQuery) {
     "use strict"
     let noServiceCache = entityMeta.noServiceCache
 
     if (noServiceCache)
-        return await aQuery()
+        return aQuery()
     else {
-        let keys = _.concat(['Entity', entityMeta.name], cacheId)
+        let keys = _.concat(["Entity", entityMeta.name], cacheId)
+        // console.log("cacheId", cacheId)
+        // console.log("keys", keys)
         let cacheItem = await Cache.aGetObject(keys)
         if (!_.isNil(cacheItem))
             return _.cloneDeep(cacheItem) // 返回拷贝，以防止污染缓存
 
         let freshValue = await aQuery()
-        if (_.isNil(cacheItem)) return freshValue // TODO 空值暂不缓存
+        if (_.isNil(freshValue)) return freshValue // TODO 空值暂不缓存
 
         await Cache.aSetObject(keys, freshValue)
         return _.cloneDeep(freshValue) // 返回拷贝，以防止污染缓存
     }
 }
 
-exports.onEntityCreated = function (asyncListener) {
+exports.onEntityCreated = function(asyncListener) {
     entityCreatedListeners.push(asyncListener)
 }
 
-exports.onEntityUpdated = function (asyncListener) {
+exports.onEntityUpdated = function(asyncListener) {
     entityUpdatedListeners.push(asyncListener)
 }
 
-exports.onEntityRemoved = function (asyncListener) {
+exports.onEntityRemoved = function(asyncListener) {
     entityRemovedListeners.push(asyncListener)
 }
 
-exports.onUpdatedOrRemoved = function (asyncListener) {
+exports.onUpdatedOrRemoved = function(asyncListener) {
     entityUpdatedListeners.push(asyncListener)
     entityRemovedListeners.push(asyncListener)
 }
 
-exports.aFireEntityCreated = async function (ctx, entityMeta) {
+exports.aFireEntityCreated = async function(ctx, entityMeta) {
     "use strict"
-    await Cache.aUnset(['Entity', entityMeta.name, 'Other'])
+    await Cache.aUnset(["Entity", entityMeta.name, "Other"])
 
     for (let asyncListener of entityCreatedListeners) {
         try {
@@ -64,9 +66,9 @@ exports.aFireEntityCreated = async function (ctx, entityMeta) {
     }
 }
 
-exports.aFireEntityUpdated = async function (ctx, entityMeta, ids) {
+exports.aFireEntityUpdated = async function(ctx, entityMeta, ids) {
     "use strict"
-    await Cache.aUnset(['Entity', entityMeta.name, 'Other'])
+    await Cache.aUnset(["Entity", entityMeta.name, "Other"])
     await aRemoveOneCacheByIds(entityMeta, ids)
 
     for (let asyncListener of entityUpdatedListeners) {
@@ -79,9 +81,9 @@ exports.aFireEntityUpdated = async function (ctx, entityMeta, ids) {
     }
 }
 
-exports.aFireEntityRemoved = async function (ctx, entityMeta, ids) {
+exports.aFireEntityRemoved = async function(ctx, entityMeta, ids) {
     "use strict"
-    await Cache.aUnset(['Entity', entityMeta.name, 'Other'])
+    await Cache.aUnset(["Entity", entityMeta.name, "Other"])
     await aRemoveOneCacheByIds(entityMeta, ids)
 
     for (let asyncListener of entityRemovedListeners) {
@@ -98,8 +100,8 @@ async function aRemoveOneCacheByIds(entityMeta, ids) {
     "use strict"
     if (ids) {
         for (let id of ids)
-            await Cache.aUnset(['Entity', entityMeta.name, 'Id', id])
+            await Cache.aUnset(["Entity", entityMeta.name, "Id", id])
     } else {
-        await Cache.aUnset(['Entity', entityMeta.name, 'Id'])
+        await Cache.aUnset(["Entity", entityMeta.name, "Id"])
     }
 }

@@ -1,7 +1,7 @@
-exports.init = function () {
+exports.init = function() {
     "use strict"
 }
 
-exports.aDispose = async function () {
+exports.aDispose = async function() {
 
 }

@@ -1,24 +1,24 @@
-const fs = require('fs')
-const path = require('path')
-const Promise = require('bluebird')
+const fs = require("fs")
+const path = require("path")
+const bluebird = require("bluebird")
 
-const pMakeDir = Promise.promisify(require('mkdirp'))
+const pMakeDir = bluebird.promisify(require("mkdirp"))
 
-exports.pUnlink = Promise.promisify(fs.unlink)
+exports.pUnlink = bluebird.promisify(fs.unlink)
 
-const pRename = Promise.promisify(fs.rename)
+const pRename = bluebird.promisify(fs.rename)
 
-const pStat = Promise.promisify(fs.stat)
+const pStat = bluebird.promisify(fs.stat)
 
-const Log = require('./Log')
+const Log = require("./Log")
 
-exports.aMoveFileTo = async function (oldName, newName) {
+exports.aMoveFileTo = async function(oldName, newName) {
     let targetDir = path.dirname(newName)
     let stats
     try {
         stats = await pStat(targetDir)
     } catch (e) {
-        Log.system.error(e, 'pStat')
+        Log.system.error(e, "pStat")
     }
 
     if (!(stats && stats.isDirectory()))
@@ -26,12 +26,12 @@ exports.aMoveFileTo = async function (oldName, newName) {
 
     await pRename(oldName, newName)
 }
-exports.aFileExists = async function (fileFullPath) {
+exports.aFileExists = async function(fileFullPath) {
     try {
         await pStat(fileFullPath)
         return true
     } catch (e) {
-        if (e.code === 'ENOENT') return false
+        if (e.code === "ENOENT") return false
         throw e
     }
 }

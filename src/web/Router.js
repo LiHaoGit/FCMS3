@@ -2,11 +2,11 @@
 // 有变量的路由，URL不同的部分，最先出现非变量路径的胜出。
 // 如 abc/def/:1/ghi 比 abc/def/:1/:2 胜出。
 
-const compose = require('koa-compose')
-const _ = require('lodash')
+const compose = require("koa-compose")
+const _ = require("lodash")
 
-const Log = require('../Log')
-const Util = require('../Util')
+const Log = require("../Log")
+const Util = require("../Util")
 
 const routes = {}
 let rootMapping = {}
@@ -20,17 +20,17 @@ let mapping = {}
 class RouteRuleRegisters {
     constructor(urlPrefix, errorCatcher) {
         this.errorCatcher = errorCatcher
-        if (!urlPrefix) throw new Error('urlPrefix cannot be empty')
+        if (!urlPrefix) throw new Error("urlPrefix cannot be empty")
         // 去掉后缀的斜线
-        if (urlPrefix[urlPrefix.length - 1] === '/')
+        if (urlPrefix[urlPrefix.length - 1] === "/")
             urlPrefix = urlPrefix.substring(0, urlPrefix.length - 1)
         this.urlPrefix = urlPrefix
     }
 
     add(method, url, info, ...handlers) {
         // 去掉 url 开头的斜线
-        if (url === '' || url === '/') url = ''
-        else if (url[0] === '/') url = url.substring(1)
+        if (url === "" || url === "/") url = ""
+        else if (url[0] === "/") url = url.substring(1)
 
         url = this.urlPrefix + "/" + url
         // Log.debug('url', url)
@@ -42,25 +42,25 @@ class RouteRuleRegisters {
     }
 
     get(url, info, ...handlers) {
-        this.add('get', url, info, ...handlers)
+        this.add("get", url, info, ...handlers)
     }
 
     post(url, info, ...handlers) {
-        this.add('post', url, info, ...handlers)
+        this.add("post", url, info, ...handlers)
     }
 
     put(url, info, ...handlers) {
-        this.add('put', url, info, ...handlers)
+        this.add("put", url, info, ...handlers)
     }
 
     del(url, info, ...handlers) {
-        this.add('delete', url, info, ...handlers)
+        this.add("delete", url, info, ...handlers)
     }
 }
 
 exports.RouteRuleRegisters = RouteRuleRegisters
 
-exports.refresh = function () {
+exports.refresh = function() {
     "use strict"
     rootMapping = {}
     mapping = {}
@@ -75,7 +75,7 @@ exports.refresh = function () {
         Log.debug(`route ${method} ${url}`)
         route.indexToVariable = {}
 
-        if (url === '' || url === '/')
+        if (url === "" || url === "/")
             rootMapping[method] = url
         else {
             let parts = splitPath(url)
@@ -87,9 +87,9 @@ exports.refresh = function () {
             for (let index = 0; index < partsLength; index++) {
                 let part = parts[index]
                 let mOfIndex = Util.setIfNone(mOfLength, index,
-                    { terms: {}, variable: [] })
+                    {terms: {}, variable: []})
 
-                if (part[0] === ':') {
+                if (part[0] === ":") {
                     let name = part.slice(1)
                     route.indexToVariable[name] = index
                     mOfIndex.variable.push(url)
@@ -109,7 +109,7 @@ exports.refresh = function () {
 }
 
 // 解析意图
-exports.aParseRoute = async function (ctx, next) {
+exports.aParseRoute = async function(ctx, next) {
     let path = decodeURI(ctx.request.path)
     // Log.debug('parse route, path = ' + path)
 
@@ -120,14 +120,14 @@ exports.aParseRoute = async function (ctx, next) {
         ctx.route = route
         await next()
     } else {
-        Log.debug('Fail to match route',
-            { method: ctx.request.method, path: path })
+        Log.debug("Fail to match route",
+            {method: ctx.request.method, path: path})
         ctx.status = 404
     }
 }
 
 // 执行路由的处理器
-exports.aHandleRoute = async function (ctx, next) {
+exports.aHandleRoute = async function(ctx, next) {
     await ctx.route.handler(ctx, next)
 }
 
@@ -148,7 +148,7 @@ function match(method, path, params) {
     // Log.debug("path", path)
 
     let parts = splitPath(path)
-    if (path === '' || path === '/') {
+    if (path === "" || path === "/") {
         let routeUrl = rootMapping[method]
         if (!routeUrl) return null // 不匹配
         return routes[method + routeUrl]
@@ -168,7 +168,7 @@ function match(method, path, params) {
                 let newPossibleRouteUrl = collectRouteUrls(mOfIndex, part)
                 // 取交集
                 for (let u in possibleRouteUrl)
-                    !newPossibleRouteUrl[u] && delete possibleRouteUrl[u]
+                    if (!newPossibleRouteUrl[u]) delete possibleRouteUrl[u]
             }
             if (!_.size(possibleRouteUrl)) return null
         }
@@ -224,5 +224,5 @@ function splitPath(aPath) {
 function addRouteRules(method, url, info, ...handlers) {
     let key = method + url
     let handler = handlers.length === 1 ? handlers[0] : compose(handlers)
-    routes[key] = { method, url, info, handler, indexToVariable: {} }
+    routes[key] = {method, url, info, handler, indexToVariable: {}}
 }

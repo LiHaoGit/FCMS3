@@ -1,10 +1,11 @@
-const Log = require('../Log')
-const Errors = require('../Errors')
-const Config = require('../Config')
+const Log = require("../Log")
+const Util = require("../Util")
+const Errors = require("../Errors")
+const Config = require("../Config")
 
-const UserService = require('../security/UserService')
+const UserService = require("../security/UserService")
 
-exports.aIdentifyUser = async function (ctx, next) {
+exports.aIdentifyUser = async function(ctx, next) {
     // Log.debug("originalUrl", ctx.request.originalUrl)
     // Log.debug("url", ctx.request.url)
     // Log.debug("origin", ctx.request.origin)
@@ -16,12 +17,14 @@ exports.aIdentifyUser = async function (ctx, next) {
     // Log.debug("ips", ctx.request.ips)
 
     let originConfig = Config.originConfigs[ctx.request.origin]
-    if (!originConfig) throw new Errors.UserError("BadOrigin", "BadOrigin")
+    if (!originConfig) throw new Errors.UserError("BadOrigin",
+        "BadOrigin " + ctx.request.origin)
 
-    ctx.state.trackId = ctx.cookies.get('TID', { signed: true })
+    let [trackId, userId, userToken] =
+        Util.getSingedPortedCookies(ctx, "TID", "UserId", "UserToken")
 
-    let userId = ctx.cookies.get('UserId', { signed: true })
-    let userToken = ctx.cookies.get('UserToken', { signed: true })
+    ctx.state.trackId = trackId
+
     let origin = ctx.request.origin
 
     if (userId && userToken)
@@ -36,7 +39,7 @@ exports.aIdentifyUser = async function (ctx, next) {
     await next()
 }
 
-exports.aControlAccess = async function (ctx, next) {
+exports.aControlAccess = async function(ctx, next) {
     let pass = await aCheckAll(ctx)
     if (!pass)
         throw ctx.state.user ? new Errors.Error403() : new Errors.Error401()
@@ -54,14 +57,14 @@ async function aCheckAll(httpCtx) {
 
     if (ri.action) {
         // 有指定权限的
-        return await aCheckUserHasAction(state.user, ri.action)
+        return aCheckUserHasAction(state.user, ri.action)
     } else if (ri.auth) {
         // 只要登录即可，无权限
         return !!state.user
     } else {
         let aAuthHandler = authHandlers[ri.auth]
         if (!aAuthHandler) {
-            Log.system.error('No auth handler for ' + ri.auth)
+            Log.system.error("No auth handler for " + ri.auth)
             return false
         }
 
@@ -87,32 +90,32 @@ async function aCheckUserHasAction(user, action) {
 
 const authHandlers = {
     async listEntity(httpCtx) {
-        return await aCheckUserHasEntityAction(httpCtx.state.user, 'List',
+        return aCheckUserHasEntityAction(httpCtx.state.user, "List",
             httpCtx.params.entityName)
     },
     async getEntity(httpCtx) {
-        return await aCheckUserHasEntityAction(httpCtx.state.user, 'Get',
+        return aCheckUserHasEntityAction(httpCtx.state.user, "Get",
             httpCtx.params.entityName)
     },
     async createEntity(httpCtx) {
-        return await aCheckUserHasEntityAction(httpCtx.state.user, 'Create',
+        return aCheckUserHasEntityAction(httpCtx.state.user, "Create",
             httpCtx.params.entityName)
     },
     async updateOneEntity(httpCtx) {
-        return await aCheckUserHasEntityAction(httpCtx.state.user,
-            'UpdateOne', httpCtx.params.entityName)
+        return aCheckUserHasEntityAction(httpCtx.state.user,
+            "UpdateOne", httpCtx.params.entityName)
     },
     async updateManyEntity(httpCtx) {
-        return await aCheckUserHasEntityAction(httpCtx.state.user,
-            'UpdateMany', httpCtx.params.entityName)
+        return aCheckUserHasEntityAction(httpCtx.state.user,
+            "UpdateMany", httpCtx.params.entityName)
     },
     async removeEntity(httpCtx) {
-        return await aCheckUserHasEntityAction(httpCtx.state.user, 'Remove',
+        return aCheckUserHasEntityAction(httpCtx.state.user, "Remove",
             httpCtx.params.entityName)
     },
     async recoverEntity(httpCtx) {
-        return await aCheckUserHasEntityAction(httpCtx.state.user,
-            'Recover', httpCtx.params.entityName)
+        return aCheckUserHasEntityAction(httpCtx.state.user,
+            "Recover", httpCtx.params.entityName)
     }
 }
 
@@ -120,16 +123,16 @@ async function aCheckUserHasEntityAction(user, action, entityName) {
     if (user) {
         let entityAcl = user.acl && user.acl.entity &&
             user.acl.entity[entityName]
-        if (entityAcl && (entityAcl['*'] || entityAcl[action])) return true
+        if (entityAcl && (entityAcl["*"] || entityAcl[action])) return true
 
         let roles = user.roles
         if (roles)
             for (let roleId of roles) {
                 let role = await UserService.aRoleById(roleId)
                 if (role) {
-                    let entityAcl = role && role.acl && role.acl.entity &&
+                    entityAcl = role && role.acl && role.acl.entity &&
                         role.acl.entity[entityName]
-                    if (entityAcl && (entityAcl['*'] || entityAcl[action]))
+                    if (entityAcl && (entityAcl["*"] || entityAcl[action]))
                         return true
                 }
             }
@@ -138,7 +141,7 @@ async function aCheckUserHasEntityAction(user, action, entityName) {
         if (role) {
             let entityAcl = role.acl && role.acl.entity &&
                 role.acl.entity[entityName]
-            if (entityAcl && (entityAcl['*'] || entityAcl[action])) return true
+            if (entityAcl && (entityAcl["*"] || entityAcl[action])) return true
         }
     }
     return false

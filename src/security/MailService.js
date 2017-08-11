@@ -1,15 +1,14 @@
-const nodemailer = require('nodemailer')
-const Promise = require('bluebird')
+const nodemailer = require("nodemailer")
+const bluebird = require("bluebird")
 
-const Config = require('../Config')
+const Config = require("../Config")
 
 let pSendMail = null
 
-exports.aSendEmail = async function (to, subject, content) {
-    if (!Config.mail) throw new Error('无发信机制')
-    let mailOptions = { from: Config.mail.user, to, subject, text: content }
-    let pSendMail = prepareSender()
-    await pSendMail(mailOptions)
+exports.aSendEmail = async function(to, subject, content) {
+    if (!Config.mail) throw new Error("无发信机制")
+    let mailOptions = {from: Config.mail.user, to, subject, text: content}
+    await prepareSender()(mailOptions)
 }
 
 function prepareSender() {
@@ -18,8 +17,8 @@ function prepareSender() {
     let transporter = nodemailer.createTransport({
         host: Config.mail.host,
         port: Config.mail.port,
-        auth: { user: Config.mail.user, pass: Config.mail.password }
+        auth: {user: Config.mail.user, pass: Config.mail.password}
     })
-    pSendMail = Promise.promisify(transporter.sendMail.bind(transporter))
+    pSendMail = bluebird.promisify(transporter.sendMail.bind(transporter))
     return pSendMail
 }

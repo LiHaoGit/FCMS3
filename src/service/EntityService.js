@@ -1,16 +1,16 @@
-const _ = require('lodash')
+const _ = require("lodash")
 
-const Errors = require('../Errors')
-const Util = require('../Util')
-const Meta = require('../Meta')
+const Errors = require("../Errors")
+const Util = require("../Util")
+const Meta = require("../Meta")
 
-const MongoService = require('./EntityServiceMongo')
-const MysqlService = require('./EntityServiceMysql')
-const EntityCache = require('./EntityServiceCache')
+const MongoService = require("./EntityServiceMongo")
+const MysqlService = require("./EntityServiceMysql")
+const EntityCache = require("./EntityServiceCache")
 
-const Mysql = require('../storage/Mysql')
+const Mysql = require("../storage/Mysql")
 
-exports.aCreate = async function (conn, entityName, instance) {
+exports.aCreate = async function(conn, entityName, instance) {
     "use strict"
     if (!_.size(instance)) throw new Errors.UserError("CreateEmpty")
     let entityMeta = Meta.getEntityMeta(entityName)
@@ -28,12 +28,13 @@ exports.aCreate = async function (conn, entityName, instance) {
             id = await MongoService.aCreate(entityMeta, instance)
 
         instance._id = id
-        return { _id: id }
+        return {_id: id}
     } finally {
-        await EntityCache.aFireEntityCreated(conn, entityMeta) // 很可能实体还是被某种程度修改，导致缓存失效
+        // 很可能实体还是被某种程度修改，导致缓存失效
+        await EntityCache.aFireEntityCreated(conn, entityMeta)
     }
 }
-exports.aUpdateOneByCriteria = async function (conn, entityName, criteria,
+exports.aUpdateOneByCriteria = async function(conn, entityName, criteria,
     instance) {
     "use strict"
     delete instance._id
@@ -49,17 +50,18 @@ exports.aUpdateOneByCriteria = async function (conn, entityName, criteria,
 
     try {
         if (entityMeta.db === Meta.DB.mysql)
-            return await MysqlService.aUpdateOneByCriteria(conn, entityMeta,
+            return MysqlService.aUpdateOneByCriteria(conn, entityMeta,
                 criteria, instance)
         else if (entityMeta.db === Meta.DB.mongo)
-            return await MongoService.aUpdateOneByCriteria(entityMeta,
+            return MongoService.aUpdateOneByCriteria(entityMeta,
                 criteria, instance)
     } finally {
-        await EntityCache.aFireEntityUpdated(conn, entityMeta, null) // TODO 清除效率改进
+        // TODO 清除效率改进
+        await EntityCache.aFireEntityUpdated(conn, entityMeta, null)
     }
 }
 
-exports.aUpdateManyByCriteria = async function (conn, entityName, criteria,
+exports.aUpdateManyByCriteria = async function(conn, entityName, criteria,
     instance) {
     "use strict"
     delete instance._id
@@ -75,68 +77,70 @@ exports.aUpdateManyByCriteria = async function (conn, entityName, criteria,
 
     try {
         if (entityMeta.db === Meta.DB.mysql)
-            return await MysqlService.aUpdateManyByCriteria(conn,
+            return MysqlService.aUpdateManyByCriteria(conn,
                 entityMeta, criteria, instance)
         else if (entityMeta.db === Meta.DB.mongo)
-            return await MongoService.aUpdateManyByCriteria(entityMeta,
+            return MongoService.aUpdateManyByCriteria(entityMeta,
                 criteria, instance)
     } finally {
-        await EntityCache.aFireEntityUpdated(conn, entityMeta, null) // TODO 清除效率改进
+        // TODO 清除效率改进
+        await EntityCache.aFireEntityUpdated(conn, entityMeta, null)
     }
 }
 
-exports.aRemoveManyByCriteria = async function (conn, entityName, criteria) {
+exports.aRemoveManyByCriteria = async function(conn, entityName, criteria) {
     "use strict"
     let entityMeta = Meta.getEntityMeta(entityName)
 
     try {
         if (entityMeta.db === Meta.DB.mysql)
-            return await MysqlService.aRemoveManyByCriteria(conn,
+            return MysqlService.aRemoveManyByCriteria(conn,
                 entityMeta, criteria)
         else if (entityMeta.db === Meta.DB.mongo)
-            return await MongoService.aRemoveManyByCriteria(entityMeta,
+            return MongoService.aRemoveManyByCriteria(entityMeta,
                 criteria)
     } finally {
-        await EntityCache.aFireEntityRemoved(conn, entityMeta, null) // TODO 清除效率改进
+        // TODO 清除效率改进
+        await EntityCache.aFireEntityRemoved(conn, entityMeta, null)
     }
 }
 
-exports.aRecoverMany = async function (conn, entityName, ids) {
+exports.aRecoverMany = async function(conn, entityName, ids) {
     "use strict"
     let entityMeta = Meta.getEntityMeta(entityName)
 
     try {
         if (entityMeta.db === Meta.DB.mysql)
-            return await MysqlService.aRecoverMany(conn, entityMeta, ids)
+            return MysqlService.aRecoverMany(conn, entityMeta, ids)
         else if (entityMeta.db === Meta.DB.mongo)
-            return await MongoService.aRecoverMany(entityMeta, ids)
+            return MongoService.aRecoverMany(entityMeta, ids)
     } finally {
         await EntityCache.aFireEntityCreated(conn, entityMeta)
     }
 }
 
 
-exports.aFindOneById = async function (conn, entityName, id, options) {
+exports.aFindOneById = async function(conn, entityName, id, options) {
     let entityMeta = Meta.getEntityMeta(entityName)
 
     options = options || {}
     let includedFields = options.includedFields || []
 
     let cacheId = id + "|" + options.repo + "|" + includedFields.join(",")
-    let criteria = { _id: id }
+    let criteria = {_id: id}
 
-    return await EntityCache.aWithCache(entityMeta, ["Id", cacheId],
-        async () => {
+    return EntityCache.aWithCache(entityMeta, ["Id", cacheId],
+        async() => {
             if (entityMeta.db === Meta.DB.mysql)
-                return await MysqlService.aFindOneByCriteria(conn,
+                return MysqlService.aFindOneByCriteria(conn,
                     entityMeta, criteria, options)
             else if (entityMeta.db === Meta.DB.mongo)
-                return await MongoService.aFindOneByCriteria(entityMeta,
+                return MongoService.aFindOneByCriteria(entityMeta,
                     criteria, options)
         })
 }
 
-exports.aFindOneByCriteria = async function (conn, entityName, criteria,
+exports.aFindOneByCriteria = async function(conn, entityName, criteria,
     options) {
     let entityMeta = Meta.getEntityMeta(entityName)
 
@@ -146,18 +150,18 @@ exports.aFindOneByCriteria = async function (conn, entityName, criteria,
     let cacheId = "OneByCriteria|" + options.repo + "|" + JSON.stringify(
         criteria) + "|" + includedFields.join(",")
 
-    return await EntityCache.aWithCache(entityMeta, ["Other", cacheId],
-        async () => {
+    return EntityCache.aWithCache(entityMeta, ["Other", cacheId],
+        async() => {
             if (entityMeta.db === Meta.DB.mysql)
-                return await MysqlService.aFindOneByCriteria(conn,
+                return MysqlService.aFindOneByCriteria(conn,
                     entityMeta, criteria, options)
             else if (entityMeta.db === Meta.DB.mongo)
-                return await MongoService.aFindOneByCriteria(entityMeta,
+                return MongoService.aFindOneByCriteria(entityMeta,
                     criteria, options)
         })
 }
 
-exports.aList = async function (conn, entityName, options) {
+exports.aList = async function(conn, entityName, options) {
     let {
         repo, criteria, pageNo, pageSize, sort,
         includedFields, withoutTotal
@@ -170,14 +174,14 @@ exports.aList = async function (conn, entityName, options) {
 
     let criteriaString = JSON.stringify(criteria)
     let sortString = Util.objectToKeyValuePairString(sort)
-    let includedFieldsString = includedFields && includedFields.join(',')
+    let includedFieldsString = includedFields && includedFields.join(",")
 
     let cacheId =
-        `List|${repo}|${pageNo}|${pageSize}|${criteriaString}|`
-        + `${sortString}|${includedFieldsString}`
+        `List|${repo}|${pageNo}|${pageSize}|${criteriaString}|` +
+        `${sortString}|${includedFieldsString}`
 
-    return await EntityCache.aWithCache(entityMeta, ["Other", cacheId],
-        async () => {
+    return EntityCache.aWithCache(entityMeta, ["Other", cacheId],
+        async() => {
             let query = {
                 repo,
                 entityMeta,
@@ -189,49 +193,47 @@ exports.aList = async function (conn, entityName, options) {
                 withoutTotal
             }
             if (entityMeta.db === Meta.DB.mysql)
-                return await MysqlService.aList(conn, query)
+                return MysqlService.aList(conn, query)
             else if (entityMeta.db === Meta.DB.mongo)
-                return await MongoService.aList(query)
+                return MongoService.aList(query)
         })
 }
 
-exports.aFindManyByCriteria = async function (conn, entityName, options) {
+exports.aFindManyByCriteria = async function(conn, entityName, options) {
     "use strict"
     options = options || {}
     options.pageSize = options.pageSize || -1
     options.withoutTotal = true
 
-    return await exports.aList(conn, entityName, options)
+    return exports.aList(conn, entityName, options)
 }
 
-exports.aFindManyByIds = async function (conn, entityName, ids, options) {
+exports.aFindManyByIds = async function(conn, entityName, ids, options) {
     options = options || {}
     options.criteria = {
-        __type: 'relation',
-        field: '_id',
-        operator: 'in',
+        __type: "relation",
+        field: "_id",
+        operator: "in",
         value: ids
     }
     options.pageSize = -1
     options.withoutTotal = true
 
-    return await exports.aList(conn, entityName, options)
+    return exports.aList(conn, entityName, options)
 }
 
-exports.aWithTransaction = async function (entityMeta, aWork) {
+exports.aWithTransaction = async function(entityMeta, aWork) {
     "use strict"
     if (entityMeta.db === Meta.DB.mysql)
-        return await Mysql.mysql.aWithTransaction(async (conn) => await aWork(
-            conn))
+        return Mysql.mysql.aWithTransaction(async conn => aWork(conn))
     else
-        return await aWork()
+        return aWork()
 }
 
-exports.aWithoutTransaction = async function (entityMeta, aWork) {
+exports.aWithoutTransaction = async function(entityMeta, aWork) {
     "use strict"
     if (entityMeta.db === Meta.DB.mysql)
-        return await Mysql.mysql.aWithoutTransaction(async (conn) =>
-            await aWork(conn))
+        return Mysql.mysql.aWithoutTransaction(async conn => aWork(conn))
     else
-        return await aWork()
+        return aWork()
 }
